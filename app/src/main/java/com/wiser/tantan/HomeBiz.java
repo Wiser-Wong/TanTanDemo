@@ -5,6 +5,9 @@ import com.wiser.library.base.WISERBiz;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * @author Wiser
+ */
 public class HomeBiz extends WISERBiz<HomeActivity> {
 
     public void setData() {

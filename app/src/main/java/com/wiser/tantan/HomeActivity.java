@@ -10,6 +10,9 @@ import java.util.List;
 
 import butterknife.BindView;
 
+/**
+ * @author Wiser
+ */
 public class HomeActivity extends WISERActivity<HomeBiz> {
 
     @BindView(R.id.slide_view)

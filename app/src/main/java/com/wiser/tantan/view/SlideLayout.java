@@ -12,14 +12,12 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 
-import com.bumptech.glide.Glide;
-import com.makeramen.roundedimageview.RoundedImageView;
-import com.wiser.tantan.NearbyPeopleModel;
 import com.wiser.tantan.R;
 
+/**
+ * @author Wiser
+ */
 public class SlideLayout extends FrameLayout implements View.OnTouchListener {
-
-    private RoundedImageView ivNearbyPeople;
 
     private float downX, downY, animStartX, animStartY;
 
@@ -39,8 +37,6 @@ public class SlideLayout extends FrameLayout implements View.OnTouchListener {
 
     private SlidePageView pageView;
 
-    private View parentChildView;
-
     public SlideLayout(Context context) {
         super(context);
         init();
@@ -52,15 +48,9 @@ public class SlideLayout extends FrameLayout implements View.OnTouchListener {
     }
 
     private void init() {
-        View view = LayoutInflater.from(getContext()).inflate(R.layout.layout_slide, null);
-        ivNearbyPeople = view.findViewById(R.id.iv_nearby_people);
+        View view = LayoutInflater.from(getContext()).inflate(R.layout.layout_slide, this, false);
         addView(view);
         setOnTouchListener(this);
-    }
-
-    public void slideData(NearbyPeopleModel model) {
-        if (model == null) return;
-        Glide.with(getContext()).load(model.url).into(ivNearbyPeople);
     }
 
     @Override
@@ -71,12 +61,13 @@ public class SlideLayout extends FrameLayout implements View.OnTouchListener {
                 downY = event.getRawY();
                 break;
             case MotionEvent.ACTION_MOVE:
-                float moveX = event.getRawX();
+                final float moveX = event.getRawX();
                 float moveY = event.getRawY();
                 setDirection(moveX, moveY);
                 setX(moveX - downX + x);
                 setY(moveY - downY + y);
                 setRotation(-(moveX - downX - x) / (getMeasuredWidth() / 5));
+                marginOtherView(moveX - downX + x);
                 break;
             case MotionEvent.ACTION_UP:
                 animStartX = event.getRawX() - downX + x;
@@ -91,10 +82,38 @@ public class SlideLayout extends FrameLayout implements View.OnTouchListener {
         return true;
     }
 
+    /**
+     * 判断是否滑动一半
+     *
+     * @return
+     */
     private boolean isSlideHalf() {
-        return Math.abs(animStartX) > getWidth() / 2;
+        return Math.abs(animStartX) > getWidth() / 2 || -animStartY > getHeight() / 2;
     }
 
+    /**
+     * 移动当前页面的同事改变其他控件缩放
+     *
+     * @param move
+     */
+    private void marginOtherView(float move) {
+        if (pageView != null) {
+            float limitX = Math.abs(move);
+            if (limitX >= getWidth() / 2) {
+                limitX = getWidth() / 2;
+            }
+            System.out.println("--------limit----->>" + limitX);
+            System.out.println("--------pageView----->>" + (int) (((float) (pageView.getShrinkDistance()) / (getWidth() / 2)) * limitX));
+            pageView.cardView(false, (int) (((float) (pageView.getShrinkDistance() / 2) / (getWidth() / 2)) * limitX));
+        }
+    }
+
+    /**
+     * 设置滑动方向
+     *
+     * @param moveX
+     * @param moveY
+     */
     private void setDirection(float moveX, float moveY) {
         float x = moveX - downX;
         float y = moveY - downY;
@@ -112,10 +131,18 @@ public class SlideLayout extends FrameLayout implements View.OnTouchListener {
         }
     }
 
+    /**
+     * 获取方向
+     *
+     * @return
+     */
     public int getDirection() {
         return direction;
     }
 
+    /**
+     * 重置动画
+     */
     private void resetAnim() {
         if (isRunningAnim) return;
         isRunningAnim = true;
@@ -135,11 +162,15 @@ public class SlideLayout extends FrameLayout implements View.OnTouchListener {
                 setX(point.x);
                 setY(point.y);
                 setRotation(-(point.x - x) / (getMeasuredWidth() / 5));
+                marginOtherView(-(point.x - x));
             }
         });
         animator.start();
     }
 
+    /**
+     * 移除动画
+     */
     private void removeAnim() {
         if (isRunningAnim) return;
         isRunningAnim = true;
@@ -158,8 +189,9 @@ public class SlideLayout extends FrameLayout implements View.OnTouchListener {
                 endPoint.y = (int) (y - getHeight());
                 break;
             case BOTTOM_SLIDE:
-                break;
             default:
+                endPoint.x = (int) x;
+                endPoint.y = (int) y;
                 break;
         }
         ValueAnimator animator = ValueAnimator.ofObject(new BesselTypeEvaluator(), new Point((int) animStartX, (int) animStartY), endPoint);
@@ -169,9 +201,12 @@ public class SlideLayout extends FrameLayout implements View.OnTouchListener {
             public void onAnimationEnd(Animator animation) {
                 super.onAnimationEnd(animation);
                 isRunningAnim = false;
-                ViewGroup viewGroup = (ViewGroup) getParent();
-                if (viewGroup != null) {
-                    viewGroup.removeView(SlideLayout.this);
+                if (getDirection() == BOTTOM_SLIDE || getDirection() == NO_SLIDE) {
+                    return;
+                }
+                if (pageView != null) pageView.removeV(SlideLayout.this);
+                else if (parent != null) {
+                    parent.removeView(SlideLayout.this);
                 }
             }
         });
@@ -189,10 +224,11 @@ public class SlideLayout extends FrameLayout implements View.OnTouchListener {
                         setRotation(-(point.x - x - getWidth()) / (getMeasuredWidth() / 5));
                         break;
                     case TOP_SLIDE:
+                        setRotation((point.x - x) / (getMeasuredWidth() / 5));
                         break;
                     case BOTTOM_SLIDE:
-                        break;
                     default:
+                        setRotation(-(point.x - x) / (getMeasuredWidth() / 5));
                         break;
                 }
             }
@@ -210,19 +246,14 @@ public class SlideLayout extends FrameLayout implements View.OnTouchListener {
             if (parent instanceof SlidePageView) {
                 pageView = (SlidePageView) parent;
             }
-            if (pageView != null && pageView.getChildCount() > 0) {
-                parentChildView = pageView.getChildAt(pageView.getChildCount() - 1);
-            }
         }
     }
 
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
-        ivNearbyPeople = null;
         pageView = null;
         parent = null;
-        parentChildView = null;
         downX = 0;
         downY = 0;
         animStartX = 0;

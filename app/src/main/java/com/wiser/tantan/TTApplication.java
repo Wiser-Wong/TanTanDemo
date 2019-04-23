@@ -4,6 +4,9 @@ import android.app.Application;
 
 import com.wiser.library.helper.WISERHelper;
 
+/**
+ * @author Wiser
+ */
 public class TTApplication extends Application {
 
     @Override

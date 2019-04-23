@@ -2,13 +2,16 @@ package com.wiser.tantan;
 
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 
 import com.bumptech.glide.Glide;
-import com.makeramen.roundedimageview.RoundedImageView;
 import com.wiser.tantan.view.SlidePageAdapter;
 
 import java.util.List;
 
+/**
+ * @author Wiser
+ */
 public class NearbyPeopleAdapter extends SlidePageAdapter<NearbyPeopleModel> {
 
     private List<NearbyPeopleModel> peopleModels;
@@ -30,8 +33,14 @@ public class NearbyPeopleAdapter extends SlidePageAdapter<NearbyPeopleModel> {
     @Override
     public View getItemView(ViewGroup viewGroup, int position) {
         View view = inflater(viewGroup, R.layout.item_slide);
-        RoundedImageView ivNearlyPeople = view.findViewById(R.id.iv_nearby_people);
+        ImageView ivNearlyPeople = view.findViewById(R.id.iv_nearby_people);
         Glide.with(context()).load(peopleModels.get(position).url).into(ivNearlyPeople);
         return view;
+    }
+
+    @Override
+    public void removeTopView() {
+        peopleModels.remove(0);
+//        notifyDataAdapter();
     }
 }
